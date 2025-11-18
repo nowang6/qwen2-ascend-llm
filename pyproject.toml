@@ -1,0 +1,21 @@
+[project]
+name = "qwen2-ascend-llm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "onnx==1.16.1",
+    "onnxruntime==1.18.1",
+    "transformers==4.37.0",
+    "torch==2.1.0",
+    "tqdm",
+    "fastapi",
+    "uvicorn",
+    "sse_starlette==1.6.5",
+    "pydantic==2.1.1",
+    "openai",
+    "onnxslim>=0.1.74",
+]
+
+

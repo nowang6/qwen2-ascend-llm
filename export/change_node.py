@@ -82,4 +82,5 @@ new_model = helper.make_model(new_graph, producer_name=model.producer_name,opset
 # new_model.opset_import = model.opset_import
 # new_model.metadata_props = model.metadata_props
 print("will save model in ", args.output_model_path)
-onnx.save(new_model, args.output_model_path, save_as_external_data=True)
+#onnx.save(new_model, args.output_model_path, save_as_external_data=True)
+onnx.save(new_model, args.output_model_path)

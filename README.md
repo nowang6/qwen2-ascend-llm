@@ -78,10 +78,11 @@
 2. 导出onnx，当前我设置的kv-cache长度为2048，可以根据自己的内存、显存来设置更大参数，最大则不建议超过`max_position_embeddings`这个数，可以去模型里面的config.json文件里面看，qwen2-1.5B-Instruct里面，这个数值为`32768`
   ```bash
   python3 export/export_onnx.py \
-    --device_str=npu \
-    --dtype=float16 \
-    --hf_model_dir="./download/Qwen2-1.5B-Instruct" \
-    --onnx_model_path="./output/onnx/qwen2_1.5b_chat.onnx" \
+    --device_str=cpu \
+    --dtype=float32 \
+    --hf_model_dir="./download/Qwen2-0.5B-Instruct" \
+    --onnx_model_path="./output/onnx/qwen2_0.5b_chat.onnx" \
+    --onnx_model_sim_path="./output/onnx/qwen2_0.5b_chat_sim.onnx" \
     --kv_cache_length=2048
   ```
 
@@ -94,9 +95,9 @@
   ```bash
   python3 ./cli_chat.py \
     --session_type=onnx \
-    --hf_model_dir="./download/Qwen2-1.5B-Instruct" \
-    --onnx_model_path="./output/onnx/qwen2_1.5b_chat.onnx" \
-    --dtype="float16" \
+    --hf_model_dir="./download/Qwen2-0.5B-Instruct" \
+    --onnx_model_path="./output/onnx/qwen2_0.5b_chat_sim.onnx" \
+    --dtype="float32" \
     --cpu_thread=4 \
     --max_input_length=1024 \
     --max_output_length=2048
@@ -105,8 +106,8 @@
 4. 改变onnx结构，目前导出的Trilu算子有些问题，atc命令无法识别，需要改一下结构。
   ```bash
   python3 export/change_node.py \
-    --input_model_path="./output/onnx/qwen2_1.5b_chat.onnx" \
-    --output_model_path="./output/onnx2/qwen2_1.5b_chat.onnx"
+    --input_model_path="./output/onnx/qwen2_0.5b_chat_sim.onnx" \
+    --output_model_path="./output/onnx2/qwen2_0.5b_chat.onnx"
   ```
 
 5. 转onnx为om模型, 将修改后的onnx利用atc命令导出到onnx，**注意此处的om_model_path不带`.om`后缀**。

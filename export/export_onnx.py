@@ -15,6 +15,7 @@ from modeling_qwen2 import Qwen2ForCausalLM
 import onnx
 import io
 import argparse
+import onnxslim
 
 
 now_dir = os.path.dirname(os.path.abspath(__file__))
@@ -61,6 +62,12 @@ def parser_arguments():
         default=os.path.join(onnx_model_dir, "qwen2_1.5b_chat.onnx")
     )
     parser.add_argument(
+        "--onnx_model_sim_path",
+        help="output optimized onnx path (after onnxslim)",
+        type=str,
+        default=None,
+    )
+    parser.add_argument(
         "--kv_cache_length",
         help="kv-cache length",
         type=int,
@@ -74,6 +81,7 @@ def export_onnx(
     dtype: str,
     hf_model_dir: str,
     onnx_model_path: str,
+    onnx_model_sim_path: str,
     kv_cache_length: int,
     num_hidden_layers: int,
     num_key_value_heads: int,
@@ -171,6 +179,13 @@ def export_onnx(
             opset_version=14,
             export_params=True
         )
+        print(f"ONNX model exported to {onnx_model_path}")
+        
+        orig_model = onnx.load(f"{onnx_model_path}")
+        sim_model = onnxslim.slim(orig_model)
+        onnx.save(sim_model, f"{onnx_model_sim_path}")
+        
+     
 
 
 if __name__ == "__main__":
@@ -203,11 +218,17 @@ if __name__ == "__main__":
     per_head_dim = hidden_size // num_attention_heads
     print("new model config save ok in ", args.hf_model_dir)
     print("begin export onnx")
+    # Generate default optimized path if not provided
+    if args.onnx_model_sim_path is None:
+        base_name = os.path.splitext(args.onnx_model_path)[0]
+        ext = os.path.splitext(args.onnx_model_path)[1]
+        args.onnx_model_sim_path = f"{base_name}_sim{ext}"
     export_onnx(
         device_str=args.device_str,
         dtype=args.dtype,
         hf_model_dir=args.hf_model_dir,
         onnx_model_path=args.onnx_model_path,
+        onnx_model_sim_path=args.onnx_model_sim_path,
         kv_cache_length=args.kv_cache_length,
         num_hidden_layers=num_hidden_layers,
         num_key_value_heads=num_key_value_heads,
