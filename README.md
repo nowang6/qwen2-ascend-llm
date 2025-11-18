@@ -119,13 +119,40 @@
   - `--cpu_thread`为转onnx为om时，开启的cpu线程数，默认为1个线程并行编译，如果内存很多（每个线程单独占用一份内存，所以很费内存），可以调高一些。
   ```bash
   python3 export/onnx2om.py \
-    --hf_model_dir="./download/Qwen2-1.5B-Instruct" \
-    --onnx_model_path="./output/onnx2/qwen2_1.5b_chat.onnx" \
-    --om_model_path="./output/model/qwen2_1.5b_chat" \
+    --hf_model_dir="./download/Qwen2-0.5B-Instruct" \
+    --onnx_model_path="./output/onnx2/qwen2_0.5b_chat.onnx" \
+    --om_model_path="./output/model/qwen2_0.5b_chat" \
     --kv_cache_length=2048 \
     --cpu_thread=1 \
     --max_prefill_length=4
   ```
+
+```sh
+export MS_DEV_FORCE_ACL=1 && \
+export MS_ENABLE_GE=1 && \
+export TE_PARALLEL_COMPILER=1 && \
+export MAX_COMPILE_CORE_NUMBER=1 && \
+atc \
+  --framework=5 \
+  --model="./output/onnx2/qwen2_0.5b_chat.onnx" \
+  --output="./output/model/qwen2_0.5b_chat" \
+  --soc_version=Ascend910B3 \
+  --precision_mode_v2=mixed_float16 \
+  --modify_mixlist=/home/qwen2-ascend-llm/ops_info.json \
+  --input_format=ND \
+  --input_shape="input_ids:1,-1;attention_mask:1,-1;position_ids:1,-1;past_key_values:1,-1,4,64" \
+  --dynamic_dims "1,1025,1,1024;2,1026,2,1024;4,1028,4,1024;1,2049,1,2048;2,2050,2,2048;4,2052,4,2048"
+```
+
+
+```sh
+./omg \
+  --framework=5 \
+  --model="qwen2_0.5b_chat_sim.onnx" \
+  --output="qwen2_0.5b_chat.om" \
+  --input_shape="input_ids:1,-1;attention_mask:1,-1;position_ids:1,-1;past_key_values:1,-1,4,64" \
+  --dynamic_dims "1,1025,1,1024;2,1026,2,1024;4,1028,4,1024;1,2049,1,2048;2,2050,2,2048;4,2052,4,2048"
+```
 
 
 ##### 步骤2：在终端运行模型进行对话

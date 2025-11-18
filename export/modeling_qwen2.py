@@ -973,14 +973,11 @@ class Qwen2Model(Qwen2PreTrainedModel):
     @staticmethod
     def get_masks(input_ids, past_length, padding_mask=None):
         batch_size, seq_length = input_ids.shape
-        full_attention_mask = torch.ones(
-            batch_size,
-            seq_length,
-            seq_length,
-            device=input_ids.device,
-            # dtype=torch.int64
-        )
-        full_attention_mask.tril_()
+        # Create lower triangular mask using arange and comparison (replacement for tril_)
+        row_indices = torch.arange(seq_length, device=input_ids.device).unsqueeze(1)  # [seq_length, 1]
+        col_indices = torch.arange(seq_length, device=input_ids.device).unsqueeze(0)  # [1, seq_length]
+        lower_tri_mask = (row_indices >= col_indices).float()  # [seq_length, seq_length]
+        full_attention_mask = lower_tri_mask.unsqueeze(0).expand(batch_size, -1, -1)  # [batch_size, seq_length, seq_length]
         # if past_length is not None:
         full_attention_mask = torch.cat(
             (
