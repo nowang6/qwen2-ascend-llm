@@ -1,6 +1,5 @@
 docker run -d \
     -p 8000:8000 \
-		--device=/dev/upgrade:/dev/upgrade \
 		--device=/dev/davinci0:/dev/davinci0 \
 		--device=/dev/davinci_manager \
 		--device=/dev/vdec:/dev/vdec \
@@ -30,6 +29,6 @@ docker run -d \
 		-v /var/slogd:/var/slogd:ro \
 		-v /var/dmp_daemon:/var/dmp_daemon:ro \
 		-v /etc/slog.conf:/etc/slog.conf:ro \
-		--name qwen_ascend_llm \
+		--name qwen_ascend_llm2 \
 		qwen_ascend_llm \
-		bash -c "/home/AscendWork/run.sh && python3 api.py"
+		bash -c "tail -f /dev/null"

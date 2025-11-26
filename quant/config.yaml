@@ -1,0 +1,30 @@
+kd:
+  enable: True
+  loss: mse
+  micro_batch_size: 2
+  gradient_accumulation_steps: 4
+  weight_decay: 0.0
+  warmup_steps: 10
+  num_epochs: 3
+  learning_rate: !!float 1e-4
+  eval_step: 1
+  logging_step: 50
+  lr_scheduler_type: cosine
+  trainable_keys:
+    - quant_alpha
+    - norm
+  no_split_module_classes:
+    - Qwen2DecoderLayer
+    - GlmDecoderLayer
+    - LlamaDecoderLayer
+    - HunYuanDecoderLayer
+dataset:
+  train_files: dataset.json
+  train_samples: 1024
+  ptq_samples: 1024
+extra_training_config:
+  fp16: True
+cutoff_len: 128
+num_samples: 256
+lut_mode: False
+embedding_in_omc: False

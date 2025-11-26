@@ -39,7 +39,34 @@
 
 - 启动部署用的容器（如果是开发用的容器，可以参考该脚本稍微修改，比如最底下的`python api.py`命令可以换成`sleep 8640000`让100天内不会关闭，然后加上-v 参数挂载一下download/output目录）。
   ```bash
-  ./run_container.sh
+ docker run --rm -it \
+    -p 8000:8000 \
+    --device=/dev/davinci0:/dev/davinci0 \
+    --device=/dev/davinci_manager \
+    --device=/dev/hisi_hdc \
+    --device=/dev/devmm_svm \
+    -v /etc/sys_version.conf:/etc/sys_version.conf:ro \
+    -v /etc/hdcBasic.cfg:/etc/hdcBasic.cfg:ro \
+    -v /usr/lib64/libaicpu_processer.so:/usr/lib64/libaicpu_processer.so:ro \
+    -v /usr/lib64/libaicpu_prof.so:/usr/lib64/libaicpu_prof.so:ro \
+    -v /usr/lib64/libaicpu_sharder.so:/usr/lib64/libaicpu_sharder.so:ro \
+    -v /usr/lib64/libadump.so:/usr/lib64/libadump.so:ro \
+    -v /usr/lib64/libtsd_eventclient.so:/usr/lib64/libtsd_eventclient.so:ro \
+    -v /usr/lib64/libaicpu_scheduler.so:/usr/lib64/libaicpu_scheduler.so:ro \
+    -v /usr/lib/aarch64-linux-gnu/libcrypto.so.1.1:/usr/lib/aarch64-linux-gnu/libcrypto.so.1.1:ro \
+    -v /usr/lib/aarch64-linux-gnu/libyaml-0.so.2:/usr/lib/aarch64-linux-gnu/libyaml-0.so.2:ro \
+    -v /usr/lib64/libdcmi.so:/usr/lib64/libdcmi.so:ro \
+    -v /usr/lib64/libmpi_dvpp_adapter.so:/usr/lib64/libmpi_dvpp_adapter.so:ro \
+    -v /usr/lib64/aicpu_kernels/:/usr/lib64/aicpu_kernels/:ro \
+    -v /usr/local/sbin/npu-smi:/usr/local/sbin/npu-smi:ro \
+    -v /usr/lib64/libstackcore.so:/usr/lib64/libstackcore.so:ro \
+    -v /usr/local/Ascend/driver/lib64:/usr/local/Ascend/driver/lib64:ro \
+    -v /var/slogd:/var/slogd:ro \
+    -v /var/dmp_daemon:/var/dmp_daemon:ro \
+    -v /etc/slog.conf:/etc/slog.conf:ro \
+    --name qwen_ascend_llm \
+    qwen_ascend_llm \
+    bash
   ```
 
 - 查看容器日志，出现`INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)`则代表启动成功。
@@ -78,8 +105,8 @@
 2. 导出onnx，当前我设置的kv-cache长度为2048，可以根据自己的内存、显存来设置更大参数，最大则不建议超过`max_position_embeddings`这个数，可以去模型里面的config.json文件里面看，qwen2-1.5B-Instruct里面，这个数值为`32768`
   ```bash
   python3 export/export_onnx.py \
-    --device_str=cpu \
-    --dtype=float32 \
+    --device_str=cuda \
+    --dtype=float16 \
     --hf_model_dir="./download/Qwen2-0.5B-Instruct" \
     --onnx_model_path="./output/onnx/qwen2_0.5b_chat.onnx" \
     --onnx_model_sim_path="./output/onnx/qwen2_0.5b_chat_sim.onnx" \
@@ -97,7 +124,7 @@
     --session_type=onnx \
     --hf_model_dir="./download/Qwen2-0.5B-Instruct" \
     --onnx_model_path="./output/onnx/qwen2_0.5b_chat_sim.onnx" \
-    --dtype="float32" \
+    --dtype="float16" \
     --cpu_thread=4 \
     --max_input_length=1024 \
     --max_output_length=2048
@@ -134,8 +161,8 @@ export TE_PARALLEL_COMPILER=1 && \
 export MAX_COMPILE_CORE_NUMBER=1 && \
 atc \
   --framework=5 \
-  --model="./output/onnx2/qwen2_0.5b_chat.onnx" \
-  --output="./output/model/qwen2_0.5b_chat" \
+  --model="qwen2_0.5b_chat_part_sim.onnx" \
+  --output="./qwen2_0.5b_chat" \
   --soc_version=Ascend910B3 \
   --precision_mode_v2=mixed_float16 \
   --modify_mixlist=/home/qwen2-ascend-llm/ops_info.json \
@@ -148,10 +175,11 @@ atc \
 ```sh
 ./omg \
   --framework=5 \
-  --model="qwen2_0.5b_chat_sim.onnx" \
+  --model="qwen2_f16_part.onnx" \
   --output="qwen2_0.5b_chat.om" \
   --input_shape="input_ids:1,-1;attention_mask:1,-1;position_ids:1,-1;past_key_values:1,-1,4,64" \
   --dynamic_dims "1,1025,1,1024;2,1026,2,1024;4,1028,4,1024;1,2049,1,2048;2,2050,2,2048;4,2052,4,2048"
+
 ```
 
 
@@ -162,6 +190,7 @@ atc \
   - `--max_output_length`则必须和之前转onnx的时候指定的`--kv_cache_length`保持一致，否则onnx输出将会异常。
   - 注：最大可以生成token数=`max_output_length`-min(max_input_length, 实际输入的token数)
   ```bash
+  export LD_LIBRARY_PATH=/usr/local/Ascend/ascend-toolkit/8.0.RC1.alpha003/runtime/lib64:$LD_LIBRARY_PATH
   python3 ./cli_chat.py \
     --session_type="acl" \
     --hf_model_dir="./download/Qwen2-1.5B-Instruct" \
